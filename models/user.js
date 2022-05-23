@@ -1,8 +1,8 @@
-'use strict';
-const bcrypt = require('bcrypt')
-const {
-  Model
-} = require('sequelize');
+"use strict";
+const bcrypt = require("bcrypt");
+const config = require("../config/app");
+const { Model } = require("sequelize");
+
 module.exports = (sequelize, DataTypes) => {
   class User extends Model {
     /**
@@ -14,26 +14,42 @@ module.exports = (sequelize, DataTypes) => {
       // define association here
     }
   }
-  User.init({
-    firstName: DataTypes.STRING,
-    lastName: DataTypes.STRING,
-    email: DataTypes.STRING,
-    password: DataTypes.STRING,
-    gender: DataTypes.STRING,
-    avatar: DataTypes.STRING
-  }, {
-    sequelize,
-    modelName: 'User',
-    hooks: {
-      beforeCreate: hashPassword,
-      beforeUpdate: hashPassword,
+  User.init(
+    {
+      firstName: DataTypes.STRING,
+      lastName: DataTypes.STRING,
+      email: DataTypes.STRING,
+      password: DataTypes.STRING,
+      gender: DataTypes.STRING,
+      avatar: {
+        type: DataTypes.STRING,
+        get() {
+          const avatar = this.getDataValue("avatar");
+          const url = `${config.appUrl}:${config.appPort}`;
+
+          if (!avatar) {
+            return `${url}/${this.getDataValue("gender")}.svg`;
+          }
+
+          const id = this.getDataValue("id");
+          return `${url}/user/${id}/${avatar}`;
+        },
+      },
+    },
+    {
+      sequelize,
+      modelName: "User",
+      hooks: {
+        beforeCreate: hashPassword,
+        beforeUpdate: hashPassword,
+      },
     }
-  });
+  );
   return User;
 };
 
 const hashPassword = async (user) => {
-  if (user.changed('password')) {
-    user.password = await bcrypt.hash(user.password, 10)
+  if (user.changed("password")) {
+    user.password = await bcrypt.hash(user.password, 10);
   }
-}
+};
